@@ -14,58 +14,54 @@ const HistoryAction = {
   replace(path, state) {
     dispatcher.dispatch({ type: 'history/replace', path, state });
   },
-  pop(id) {
-    dispatcher.dispatch({ type: 'history/pop', id });
+  pop(path, state) {
+    dispatcher.dispatch({ type: 'history/pop', path, state });
   }
 };
 
 // Store
 class HistoryStore extends ReduceStore {
   getInitialState() {
-    return { histories: [{}], type: null, id: 0 };
+    return { histories: {}, type: null, id: 0 };
   }
   reduce(state, action) {
     const {histories, id} = state;
+    let newId = id + 1;
     switch (action.type) {
       case 'history/push':
-        const newId = id + 1;
-        const newHistories = histories.slice(0, newId);
-        newHistories.push({id: newId, path: action.path, state: action.state || null});
         return {
           id: newId,
           type: action.type,
-          histories: newHistories
+          histories: Object.assign(
+            {}, state.histories, { [newId]: { path: action.path, state: action.state } }
+          )
         };
       case 'history/replace':
         return {
           id,
           type: action.type,
-          histories: [
-            ...histories.slice(0, id),
-            { id, path: action.path, state: action.state || null },
-            ...histories.slice(id + 1),
-          ]
+          histories: Object.assign(
+            {}, state.histories, { [id]: { path: action.path, state: action.state } }
+          )
         };
       case 'history/pop':
+        if (action.state.id) {
+          newId = action.state.id;
+        }
         return {
-          id: action.id,
+          id: newId,
           type: action.type,
-          histories,
+          histories: Object.assign(
+            {}, { [newId]: { path: action.path, state: action.state } }, state.histories
+          )
         };
       default:
         return state;
     }
   }
-  getLastActionType() {
-    return this.getState().type;
-  }
-  getHistoryById(id) {
-    const { histories } = this.getState();
-    return histories[id];
-  }
   getCurrentHistory() {
-    const { id } = this.getState();
-    return this.getHistoryById(id);
+    const { id, histories } = this.getState();
+    return histories[id];
   }
 }
 
@@ -127,16 +123,13 @@ App = Container.create(App);
 
 // handle popstate event
 window.addEventListener('popstate', (e) => {
-  // restore a current history state from historyStore by id in the history.state
-  if (history.state && historyStore.getHistoryById(history.state.id)) {
-    HistoryAction.pop(history.state.id);
-  }
+  HistoryAction.pop(location.pathname, history.state);
 });
 
 // update browser history
 historyStore.addListener(() => {
-  const { id, path } = historyStore.getCurrentHistory();
-  const type = historyStore.getLastActionType();
+  const { type, id } = historyStore.getState();
+  const { path } = historyStore.getCurrentHistory();
 
   switch (type) {
     case 'history/push':
@@ -148,7 +141,7 @@ historyStore.addListener(() => {
   }
 });
 
-// initialize HistoryStore by current location
-HistoryAction.replace(location.pathname, null);
+// manage current history in historyStore and window.history
+HistoryAction.replace(location.pathname, history.state);
 
 ReactDOM.render(<App />, document.getElementById('app'));
