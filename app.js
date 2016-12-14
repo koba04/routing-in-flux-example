@@ -26,6 +26,9 @@ class HistoryStore extends ReduceStore {
   }
   reduce(state, action) {
     switch (action.type) {
+      // store the action as a state.
+      // that is enough because this app just saves location.path and history.state as a state,
+      // which can be restored from location and history anytime.
       case 'history/push':
       case 'history/replace':
       case 'history/pop':
