@@ -22,46 +22,17 @@ const HistoryAction = {
 // Store
 class HistoryStore extends ReduceStore {
   getInitialState() {
-    return { histories: {}, type: null, id: 0 };
+    return { type: null, path: null, state: null };
   }
   reduce(state, action) {
-    const {histories, id} = state;
-    let newId = id + 1;
     switch (action.type) {
       case 'history/push':
-        return {
-          id: newId,
-          type: action.type,
-          histories: Object.assign(
-            {}, state.histories, { [newId]: { path: action.path, state: action.state } }
-          )
-        };
       case 'history/replace':
-        return {
-          id,
-          type: action.type,
-          histories: Object.assign(
-            {}, state.histories, { [id]: { path: action.path, state: action.state } }
-          )
-        };
       case 'history/pop':
-        if (action.state.id) {
-          newId = action.state.id;
-        }
-        return {
-          id: newId,
-          type: action.type,
-          histories: Object.assign(
-            {}, { [newId]: { path: action.path, state: action.state } }, state.histories
-          )
-        };
+        return action;
       default:
         return state;
     }
-  }
-  getCurrentHistory() {
-    const { id, histories } = this.getState();
-    return histories[id];
   }
 }
 
@@ -117,30 +88,27 @@ App.getStores = () => {
   return [historyStore];
 };
 App.calculateState = () => {
-  return { history: historyStore.getCurrentHistory() };
+  return { history: historyStore.getState() };
 };
 App = Container.create(App);
 
+// code depending on the DOM environment
 // handle popstate event
 window.addEventListener('popstate', (e) => {
   HistoryAction.pop(location.pathname, history.state);
 });
-
 // update browser history
 historyStore.addListener(() => {
-  const { type, id } = historyStore.getState();
-  const { path } = historyStore.getCurrentHistory();
-
+  const { type, state, path } = historyStore.getState();
   switch (type) {
     case 'history/push':
-      history.pushState({ id }, null, path);
+      history.pushState(state, null, path);
       break;
     case 'history/replace':
-      history.replaceState({ id }, null, path);
+      history.replaceState(state, null, path);
       break;
   }
 });
-
 // manage current history in historyStore and window.history
 HistoryAction.replace(location.pathname, history.state);
 
