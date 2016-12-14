@@ -64,7 +64,13 @@ const Bar = () => (
   </div>
 );
 
-class App extends React.Component {
+const App = Container.create(class App extends React.Component {
+  static getStores() {
+    return [historyStore];
+  }
+  static calculateState() {
+    return { history: historyStore.getState() };
+  }
   render() {
     switch (this.state.history.path) {
       case '/foo':
@@ -83,14 +89,7 @@ class App extends React.Component {
         );
     }
   }
-}
-App.getStores = () => {
-  return [historyStore];
-};
-App.calculateState = () => {
-  return { history: historyStore.getState() };
-};
-App = Container.create(App);
+});
 
 // code depending on the DOM environment
 // handle popstate event
