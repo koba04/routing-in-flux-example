@@ -1,2 +1,2 @@
-# routing-in-flux-sample
+# manage-routing-in-flux-example
 A sample for a pattern to manage routing in Flux
